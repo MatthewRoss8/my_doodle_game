@@ -1,231 +1,547 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Doodle Jump</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Doodle Jump Mobile</title>
     <style>
-        body {
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #1a237e, #4a148c);
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
-            background: #87CEEB;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
-        #gameOver {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 85vh;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
             text-align: center;
-            display: none;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            font-family: Arial, sans-serif;
+            font-size: 28px;
+            font-weight: bold;
         }
-        #score {
-            position: fixed;
-            top: 10px;
-            left: 10px;
+        
+        #start-screen, #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10;
+            text-align: center;
+        }
+        
+        #game-over {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #FFEB3B;
+            text-shadow: 0 0 10px rgba(255, 235, 59, 0.8);
+        }
+        
+        button {
+            background: linear-gradient(to bottom, #FF5722, #E64A19);
             color: white;
-            font-family: Arial, sans-serif;
-            font-size: 24px;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 20px 0;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        #instructions {
+            margin-top: 20px;
+            padding: 0 20px;
+            font-size: 1rem;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+        
+        .controls-info {
+            display: flex;
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            width: 90%;
+            justify-content: space-around;
+        }
+        
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .control-item i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #FFEB3B;
+        }
+        
+        .platform {
+            position: absolute;
+            height: 20px;
+            background: linear-gradient(to right, #4CAF50, #8BC34A);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: 2px solid #2E7D32;
+        }
+        
+        #mobile-warning {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 235, 59, 0.9);
+            color: #333;
+            border-radius: 10px;
+            max-width: 90%;
+            font-weight: bold;
+        }
+        
+        @media (max-height: 600px) {
+            #game-container {
+                height: 95vh;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="score">Score: 0</div>
-    <div id="gameOver">
-        <h1>Game Over!</h1>
-        <p>Final Score: <span id="finalScore">0</span></p>
-        <button onclick="startGame()">Play Again</button>
+    <h1>DOODLE JUMP</h1>
+    
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="score-display">Score: 0</div>
+            
+            <div id="start-screen">
+                <h1>DOODLE JUMP</h1>
+                <button id="start-btn">PLAY</button>
+                <div id="instructions">
+                    Tilt your device left and right to move!<br>
+                    Jump on platforms to climb higher!
+                </div>
+                <div class="controls-info">
+                    <div class="control-item">
+                        <i>↖️</i>
+                        <div>Tilt Left</div>
+                    </div>
+                    <div class="control-item">
+                        <i>↗️</i>
+                        <div>Tilt Right</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="game-over">
+                <h1>GAME OVER</h1>
+                <div id="final-score">Score: 0</div>
+                <button id="restart-btn">PLAY AGAIN</button>
+            </div>
+        </div>
+        
+        <div id="mobile-warning">Please rotate your device to portrait mode for best experience!</div>
     </div>
-    <canvas id="gameCanvas"></canvas>
-
-
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const scoreElement = document.getElementById('score');
-const gameOverDiv = document.getElementById('gameOver');
-const finalScoreSpan = document.getElementById('finalScore');
-
-
-// Game variables
-let doodle = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    size: 30,
-    velocityY: 0,
-    jumpStrength: -15
-};
-
-
-let platforms = [];
-let score = 0;
-let gameWidth = 300;
-let gameHeight = 500;
-let isGameOver = false;
-let tiltSensitivity = 0.1;
-
-
-// Initialize canvas
-function initCanvas() {
-    canvas.width = gameWidth;
-    canvas.height = gameHeight;
-}
-
-
-// Create initial platforms
-function generatePlatforms() {
-    platforms = [];
-    for (let i = 0; i < 15; i++) {
-        platforms.push({
-            x: Math.random() * (gameWidth - 80) + 40,
-            y: gameHeight - (i * (gameHeight / 15)),
-            width: 80,
-            height: 20,
-            color: '#' + Math.floor(Math.random()*16777215).toString(16)
-        });
-    }
-}
-
-
-// Game loop
-function update() {
-    if (isGameOver) return;
-
-
-    // Apply gravity
-    doodle.velocityY += 0.5;
-    doodle.y += doodle.velocityY;
-
-
-    // Screen wrap
-    if (doodle.x < 0) doodle.x = gameWidth;
-    if (doodle.x > gameWidth) doodle.x = 0;
-
-
-    // Platform collision
-    platforms.forEach(platform => {
-        if (checkCollision(doodle, platform)) {
-            doodle.velocityY = doodle.jumpStrength;
+    
+    <script>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const finalScore = document.getElementById('final-score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const mobileWarning = document.getElementById('mobile-warning');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+            // Show warning if in landscape
+            mobileWarning.style.display = (window.innerWidth > window.innerHeight) ? 'block' : 'none';
         }
-    });
-
-
-    // Generate new platforms when reaching top
-    if (doodle.y < gameHeight / 2) {
-        doodle.y += Math.abs(doodle.jumpStrength);
-        platforms.forEach(platform => {
-            platform.y += Math.abs(doodle.jumpStrength);
-        });
-        generateNewPlatforms(5);
-    }
-
-
-    // Game over check
-    if (doodle.y > gameHeight + doodle.size) {
-        gameOver();
-    }
-
-
-    // Update score
-    score = Math.floor(gameHeight - doodle.y);
-    scoreElement.textContent = `Score: ${score}`;
-
-
-    requestAnimationFrame(update);
-    draw();
-}
-
-
-// Generate new platforms at the top
-function generateNewPlatforms(count) {
-    for (let i = 0; i < count; i++) {
-        platforms.unshift({
-            x: Math.random() * (gameWidth - 80) + 40,
-            y: platforms[0].y - (gameHeight / 15),
-            width: 80,
-            height: 20,
-            color: '#' + Math.floor(Math.random()*16777215).toString(16)
-        });
-        platforms.pop();
-    }
-}
-
-
-// Collision detection
-function checkCollision(doodle, platform) {
-    return doodle.x < platform.x + platform.width &&
-           doodle.x + doodle.size > platform.x &&
-           doodle.y + doodle.size > platform.y &&
-           doodle.y < platform.y + platform.height;
-}
-
-
-// Drawing function
-function draw() {
-    ctx.clearRect(0, 0, gameWidth, gameHeight);
-
-
-    // Draw platforms
-    platforms.forEach(platform => {
-        ctx.fillStyle = platform.color;
-        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-    });
-
-
-    // Draw doodle
-    ctx.fillStyle = '#ff4444';
-    ctx.fillRect(doodle.x, doodle.y, doodle.size, doodle.size);
-}
-
-
-// Game over handler
-function gameOver() {
-    isGameOver = true;
-    finalScoreSpan.textContent = score;
-    gameOverDiv.style.display = 'block';
-}
-
-
-// Tilt controls
-window.addEventListener('deviceorientation', (event) => {
-    if (event.gamma) {
-        doodle.x += event.gamma * tiltSensitivity;
-    }
-});
-
-
-// Touch controls fallback
-canvas.addEventListener('touchstart', () => {
-    if (!isGameOver) {
-        doodle.velocityY = doodle.jumpStrength;
-    }
-});
-
-
-// Start game
-function startGame() {
-    gameOverDiv.style.display = 'none';
-    doodle = {
-        x: canvas.width / 2,
-        y: canvas.height / 2,
-        size: 30,
-        velocityY: 0,
-        jumpStrength: -15
-    };
-    score = 0;
-    isGameOver = false;
-    generatePlatforms();
-    update();
-}
-
-
-// Initial setup
-window.addEventListener('load', () => {
-    initCanvas();
-    startGame();
-});
-</script>
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Game state
+        let gameState = {
+            score: 0,
+            highScore: 0,
+            gameRunning: false,
+            player: {
+                x: 0,
+                y: 0,
+                width: 40,
+                height: 40,
+                velocityY: 0,
+                velocityX: 0,
+                jumpForce: -15,
+                gravity: 0.5
+            },
+            platforms: [],
+            cameraOffset: 0,
+            platformCount: 8,
+            tilt: 0
+        };
+        
+        // Initialize game
+        function initGame() {
+            gameState.score = 0;
+            gameState.player.x = canvas.width / 2 - gameState.player.width / 2;
+            gameState.player.y = canvas.height - 150;
+            gameState.player.velocityY = 0;
+            gameState.player.velocityX = 0;
+            gameState.cameraOffset = 0;
+            gameState.platforms = [];
+            
+            // Create initial platforms
+            for (let i = 0; i < gameState.platformCount; i++) {
+                createPlatform(i * (canvas.height / gameState.platformCount));
+            }
+            
+            // Add a platform under the player
+            gameState.platforms.push({
+                x: gameState.player.x,
+                y: gameState.player.y + gameState.player.height + 10,
+                width: 80,
+                height: 20
+            });
+            
+            scoreDisplay.textContent = `Score: ${gameState.score}`;
+        }
+        
+        // Create a platform at a specific y position
+        function createPlatform(yPos) {
+            gameState.platforms.push({
+                x: Math.random() * (canvas.width - 80),
+                y: yPos,
+                width: 60 + Math.random() * 60,
+                height: 20
+            });
+        }
+        
+        // Draw the player
+        function drawPlayer() {
+            ctx.fillStyle = '#FF5722';
+            ctx.strokeStyle = '#E64A19';
+            ctx.lineWidth = 3;
+            
+            // Draw the doodle character (simple version)
+            ctx.beginPath();
+            ctx.arc(
+                gameState.player.x + gameState.player.width/2, 
+                gameState.player.y + gameState.player.height/3, 
+                gameState.player.width/3, 
+                0, 
+                Math.PI * 2
+            );
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw body
+            ctx.beginPath();
+            ctx.ellipse(
+                gameState.player.x + gameState.player.width/2, 
+                gameState.player.y + gameState.player.height/1.5, 
+                gameState.player.width/3, 
+                gameState.player.height/3, 
+                0, 
+                0, 
+                Math.PI * 2
+            );
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw legs (jumping motion)
+            ctx.beginPath();
+            ctx.moveTo(gameState.player.x + gameState.player.width/3, gameState.player.y + gameState.player.height);
+            ctx.lineTo(gameState.player.x + gameState.player.width/2, gameState.player.y + gameState.player.height/1.5);
+            ctx.lineTo(gameState.player.x + gameState.player.width*2/3, gameState.player.y + gameState.player.height);
+            ctx.stroke();
+        }
+        
+        // Draw platforms
+        function drawPlatforms() {
+            gameState.platforms.forEach(platform => {
+                // Only draw platforms that are in view
+                const screenY = platform.y - gameState.cameraOffset;
+                if (screenY > -30 && screenY < canvas.height) {
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.strokeStyle = '#2E7D32';
+                    ctx.lineWidth = 2;
+                    
+                    // Draw platform with rounded corners
+                    ctx.beginPath();
+                    ctx.roundRect(platform.x, screenY, platform.width, platform.height, 10);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Platform details
+                    ctx.fillStyle = '#2E7D32';
+                    ctx.fillRect(platform.x + 10, screenY + 5, platform.width - 20, 3);
+                    ctx.fillRect(platform.x + 15, screenY + 12, platform.width - 30, 3);
+                }
+            });
+        }
+        
+        // Draw background elements
+        function drawBackground() {
+            // Sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#E0F7FA');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Clouds
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            drawCloud(canvas.width * 0.2, 100 - gameState.cameraOffset * 0.2, 40);
+            drawCloud(canvas.width * 0.7, 50 - gameState.cameraOffset * 0.2, 30);
+            drawCloud(canvas.width * 0.4, 200 - gameState.cameraOffset * 0.2, 50);
+        }
+        
+        // Draw a cloud
+        function drawCloud(x, y, size) {
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.arc(x + size * 0.8, y - size * 0.2, size * 0.8, 0, Math.PI * 2);
+            ctx.arc(x + size * 1.6, y, size * 0.9, 0, Math.PI * 2);
+            ctx.arc(x + size * 1.2, y + size * 0.2, size * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Game loop
+        function gameLoop() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw game elements
+            drawBackground();
+            drawPlatforms();
+            drawPlayer();
+            
+            // Update game state if running
+            if (gameState.gameRunning) {
+                updateGame();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Update game state
+        function updateGame() {
+            const player = gameState.player;
+            
+            // Apply gravity
+            player.velocityY += player.gravity;
+            player.y += player.velocityY;
+            
+            // Apply tilt controls
+            player.velocityX = gameState.tilt * 5;
+            player.x += player.velocityX;
+            
+            // Wrap around screen edges
+            if (player.x < -player.width) player.x = canvas.width;
+            if (player.x > canvas.width) player.x = -player.width;
+            
+            // Platform collision
+            let onPlatform = false;
+            
+            gameState.platforms.forEach(platform => {
+                const platformScreenY = platform.y - gameState.cameraOffset;
+                
+                // Check if player is above platform and falling
+                if (
+                    player.velocityY > 0 &&
+                    player.x + player.width > platform.x &&
+                    player.x < platform.x + platform.width &&
+                    player.y + player.height > platformScreenY &&
+                    player.y + player.height < platformScreenY + platform.height
+                ) {
+                    // Player landed on platform
+                    player.velocityY = player.jumpForce;
+                    onPlatform = true;
+                    
+                    // Add a little bounce effect
+                    platform.height = 15;
+                    setTimeout(() => {
+                        platform.height = 20;
+                    }, 100);
+                }
+            });
+            
+            // Scroll the camera when player jumps high
+            if (player.y < canvas.height / 3) {
+                const diff = canvas.height / 3 - player.y;
+                gameState.cameraOffset += diff;
+                player.y = canvas.height / 3;
+                
+                // Update score
+                gameState.score += Math.floor(diff);
+                scoreDisplay.textContent = `Score: ${gameState.score}`;
+            }
+            
+            // Generate new platforms as we go higher
+            const highestPlatform = Math.max(...gameState.platforms.map(p => p.y));
+            if (gameState.cameraOffset + canvas.height > highestPlatform) {
+                createPlatform(highestPlatform + (canvas.height / gameState.platformCount));
+            }
+            
+            // Remove platforms that are far below
+            gameState.platforms = gameState.platforms.filter(
+                platform => platform.y > gameState.cameraOffset - 100
+            );
+            
+            // Game over condition
+            if (player.y > canvas.height) {
+                gameOver();
+            }
+        }
+        
+        // Game over function
+        function gameOver() {
+            gameState.gameRunning = false;
+            finalScore.textContent = `Score: ${gameState.score}`;
+            gameOverScreen.style.display = 'flex';
+            
+            // Update high score
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+            }
+        }
+        
+        // Device orientation (tilt) handling
+        function handleOrientation(event) {
+            if (!gameState.gameRunning) return;
+            
+            // Gamma is the left-to-right tilt in degrees (-90 to 90)
+            const tilt = event.gamma;
+            
+            // Limit the tilt value and normalize
+            if (tilt !== null) {
+                gameState.tilt = Math.max(-1, Math.min(1, tilt / 45));
+            }
+        }
+        
+        // Fallback for devices without DeviceOrientation
+        function handleTouchMove(e) {
+            if (!gameState.gameRunning) return;
+            
+            e.preventDefault();
+            const touch = e.touches[0];
+            const center = canvas.width / 2;
+            gameState.tilt = (touch.clientX - center) / center;
+        }
+        
+        // Start game function
+        function startGame() {
+            initGame();
+            gameState.gameRunning = true;
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            gameLoop();
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+        
+        // Device orientation event
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', handleOrientation);
+        } else {
+            // Fallback for touch devices without orientation
+            canvas.addEventListener('touchmove', handleTouchMove);
+        }
+        
+        // Prevent touch scrolling
+        document.body.addEventListener('touchmove', function(e) {
+            if (gameState.gameRunning) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Initial draw
+        gameLoop();
+        
+        // Add rounded rect function to Canvas
+        if (CanvasRenderingContext2D.prototype.roundRect === undefined) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            };
+        }
+    </script>
 </body>
 </html>
